@@ -1,25 +1,122 @@
-import logo from './logo.svg';
-import './App.css';
+import { useEffect, useReducer, useState } from "react"
+import { Footer } from "./components/Footer/Footer"
+import { FormularioTareas } from "./components/FormularioTareas/FormularioTareas"
+import { Header } from "./components/Header/Header"
+import { TareasAgregadas } from "./components/TareasAgregadas/TareasAgregadas"
+import { tareaReducer } from "./reducers/tareaReducer"
+import Swal from 'sweetalert2'; 
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+
+export const App = () =>{
+    const init = () => {
+        return JSON.parse(localStorage.getItem("tareas")) || [] 
+        
+    }
+    const [state, dispatch] = useReducer(tareaReducer, [], init)
+
+    const [descripcion, setDescription] = useState("")
+    useEffect(() => {
+      localStorage.setItem("tareas", JSON.stringify(state))    
+    }, [state])
+    
+        const handleInputChange= (evento) =>{
+            setDescription(evento.target.value)
+            console.log(descripcion)
+        }
+        const handleSubmit = (evento) =>{
+            evento.preventDefault();
+            console.log(evento)
+            
+            if (descripcion.trim() === "") {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: 'No Hay Nada Escrito!',
+                  })
+                return; 
+            }
+
+            const tareaNueva ={
+                id : new Date().getTime(),
+                descripcion: descripcion,
+                realizado:false
+            }
+    
+            const action = {
+                type: "agregar",
+                payload : tareaNueva
+            }
+    
+            dispatch(action)
+            setDescription("")
+        }
+
+
+    const handleCambiar = (id) => {
+        dispatch({
+            type: "cambiar",
+            payload: id
+        })
+    }
+    
+    const handleEliminar = (id) => {
+        Swal.fire({
+            title: 'Seguro Que Lo Quieres Borrar?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, delete it!'
+          }).then((result) => {
+            if (result.isConfirmed) {
+                dispatch({
+                    type: "borrar",
+                    payload: id
+                })
+              Swal.fire(
+                'Deleted!',
+                'Your file has been deleted.',
+                'success'
+              )
+            }
+          })
+        
+    }
+
+    let terminadas = 0;
+    for(let i = 0; i < state.length; i++){
+        if (state[i].realizado === true) {
+            terminadas++;
+        }
+    }
+    
+    let porcentaje = terminadas / state.length
+
+    return (
+        <>
+        <Header/>
+        <div className="container">
+            <div className="row">
+                <div className="col-12 col-md-4 order-1 order-md-1 mx-auto">
+                    <FormularioTareas descripcion={descripcion} handleInputChange={handleInputChange} handleSubmit={handleSubmit} />
+                </div>
+                <div className="col-12 col-md-8 order-2 order-md-2 mt-4">
+                    <div className="row justify-content-center ">
+                        {
+                            state.map((tarea, index) => {
+                            return <TareasAgregadas key={index} tarea={tarea} porcentaje={porcentaje} handleCambiar={handleCambiar} numero={index} handleEliminar={handleEliminar}  index={tarea.id} />
+                            })
+                        }
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <Footer porcentaje={porcentaje}/>
+        
+        </>
+    )
 }
+//const App = () => <h1>holamundo</h1> esta es la opcion mas condensada
 
-export default App;
